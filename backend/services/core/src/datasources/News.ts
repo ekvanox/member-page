@@ -11,6 +11,7 @@ import * as gql from '../types/graphql';
 import * as sql from '../types/news';
 import { TagSubscription } from '../types/notifications';
 import { convertMember } from './Member';
+import { NotificationType } from '../shared/notifications';
 
 type AuthorArticle = Omit<gql.Article, 'author'> & {
   author: gql.Mandate | gql.Member;
@@ -596,6 +597,7 @@ export default class News extends dbUtils.KnexDataSource {
     id: UUID,
   ): Promise<gql.Maybe<gql.ArticleRequest>> {
     return this.withAccess('news:article:manage', ctx, async () => {
+      const me = await this.getCurrentMember(ctx);
       const article = await this.knex<sql.Article>('articles').whereNull('removed_at').andWhere({ status: 'draft', id }).first();
       if (!article) throw new UserInputError(`Article with id ${id} does not exist`);
       const user = await dbUtils.unique(this.knex<sql.Keycloak>('keycloak').where({ keycloak_id: ctx.user?.keycloak_id }));
@@ -628,7 +630,8 @@ export default class News extends dbUtils.KnexDataSource {
         `"${updatedArticle.header}" är nu publicerad.`,
         // See comment in Notifications.ts why I chose 'COMMENT'.
         // We can't change the internal name as it would break existing notifications
-        'COMMENT',
+        NotificationType.ARTICLE_UPDATE,
+        me.id,
       );
       return convertArticleRequest({
         article: { ...updatedArticle, ...updatedArticleRequest },
@@ -643,6 +646,7 @@ export default class News extends dbUtils.KnexDataSource {
     reason?: string,
   ): Promise<gql.Maybe<gql.ArticleRequest>> {
     return this.withAccess('news:article:manage', ctx, async () => {
+      const me = await this.getCurrentMember(ctx);
       const article = await this.knex<sql.Article>('articles').whereNull('removed_at').andWhere({ status: 'draft', id }).first();
       if (!article) throw new UserInputError(`Article with id ${id} does not exist`);
       const user = await dbUtils.unique(this.knex<sql.Keycloak>('keycloak').where({ keycloak_id: ctx.user?.keycloak_id }));
@@ -666,8 +670,9 @@ export default class News extends dbUtils.KnexDataSource {
         reason ? `"${updatedArticle.header}" med anledning: ${reason}` : `"${updatedArticle.header}" blev avvisad.`,
         // See comment in Notifications.ts why I chose 'COMMENT'.
         // We can't change the internal name as it would break existing notifications
-        'COMMENT',
+        NotificationType.ARTICLE_UPDATE,
         '/news/requests/rejected',
+        me.id,
       );
       return convertArticleRequest({
         article: { ...updatedArticle, ...updatedArticleRequest },
@@ -681,6 +686,7 @@ export default class News extends dbUtils.KnexDataSource {
     id: UUID,
   ): Promise<gql.Maybe<gql.ArticleRequest>> {
     return this.withAccess('news:article:manage', ctx, async () => {
+      const me = await this.getCurrentMember(ctx);
       const article = await this.knex<sql.Article>('articles').whereNull('removed_at').andWhere({ status: 'rejected', id }).first();
       if (!article) throw new UserInputError(`Article with id ${id} does not exist or is not rejected`);
 
@@ -703,8 +709,9 @@ export default class News extends dbUtils.KnexDataSource {
         `"${updatedArticle.header}" är nu återställd till utkast.`,
         // See comment in Notifications.ts why I chose 'COMMENT'.
         // We can't change the internal name as it would break existing notifications
-        'COMMENT',
+        NotificationType.ARTICLE_UPDATE,
         '/news/requests',
+        me.id,
       );
       return convertArticleRequest({
         article: { ...updatedArticle, ...updatedArticleRequest },
@@ -804,8 +811,7 @@ export default class News extends dbUtils.KnexDataSource {
 
   likeArticle(ctx: context.UserContext, id: UUID): Promise<gql.Maybe<gql.ArticlePayload>> {
     return this.withAccess('news:article:like', ctx, async () => {
-      if (!ctx.user) throw new Error('User not logged in');
-      const me = await this.getMemberFromKeycloakId(ctx.user?.keycloak_id);
+      const me = await this.getCurrentMember(ctx);
       const article = await dbUtils.unique(this.knex<sql.Article>('articles').where({ id }));
       if (!article) throw new UserInputError('id did not exist');
 
@@ -822,7 +828,8 @@ export default class News extends dbUtils.KnexDataSource {
         article,
         'Du har fått en ny gillning',
         `${me.first_name} ${me.last_name} har gillat din artikel "${article.header}"`,
-        'LIKE',
+        NotificationType.LIKE,
+        me.id,
       );
 
       return {
@@ -858,7 +865,7 @@ export default class News extends dbUtils.KnexDataSource {
         article,
         'Du har fått en ny kommentar',
         `${me.first_name} ${me.last_name} har kommenterat på din artikel "${article.header}"`,
-        'COMMENT',
+        NotificationType.COMMENT,
       );
 
       const mentionedStudentIds: string[] | undefined = content
@@ -894,8 +901,9 @@ export default class News extends dbUtils.KnexDataSource {
         title: 'Du har blivit nämnd i en kommentar',
         message: `${commenter.first_name} ${commenter.last_name} har nämnt dig i "${article.header}"`,
         memberIds: students.map((s) => s.id),
-        type: 'MENTION',
+        type: NotificationType.MENTION,
         link: `/news/article/${article.slug ?? article.id}`,
+        fromMemberId: commenter.id,
       });
     } else {
       notificationsLogger.info(`No students found for mentioned student ids: ${studentIds}`);
@@ -906,8 +914,9 @@ export default class News extends dbUtils.KnexDataSource {
     article: sql.Article,
     title: string,
     message: string,
-    type: string,
+    type: NotificationType,
     customLink?: string,
+    fromMemberId?: UUID,
   ): Promise<void> {
     const link = customLink ?? `/news/article/${article.slug ?? article.id}`;
     let memberId = article.author_id;
@@ -922,6 +931,7 @@ export default class News extends dbUtils.KnexDataSource {
       type,
       link,
       memberIds: [memberId],
+      fromMemberId,
     });
   }
 
@@ -940,7 +950,7 @@ export default class News extends dbUtils.KnexDataSource {
     this.addNotification({
       title: `Ny nyhet: ${title}`,
       message: message || '',
-      type: 'NEW_ARTICLE',
+      type: NotificationType.NEW_ARTICLE,
       link: `/news/article/${article.slug || article.id}`,
       memberIds: subscribedMemberIDs,
     });
