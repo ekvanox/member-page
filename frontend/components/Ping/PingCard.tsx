@@ -10,7 +10,7 @@ import { useState } from 'react';
 import Link from '~/components/Link';
 import { timeAgo } from '~/functions/datetimeFunctions';
 import { getFullName } from '~/functions/memberFunctions';
-import { Ping, usePingMemberMutation } from '~/generated/graphql';
+import { Ping, useNotificationsQuery, usePingMemberMutation } from '~/generated/graphql';
 import routes from '~/routes';
 
 type Props = {
@@ -20,6 +20,9 @@ type Props = {
 export default function PingCard({ ping }: Props) {
   const { t } = useTranslation('member');
   const member = ping.from;
+  const { refetch } = useNotificationsQuery({
+    skip: true, // we don't want to actually fetch, just refetch
+  });
   const [pingBack] = usePingMemberMutation({
     variables: {
       id: member?.id,
@@ -48,9 +51,10 @@ export default function PingCard({ ping }: Props) {
         <Button
           disabled={hasPinged}
           variant="contained"
-          onClick={() => {
+          onClick={async () => {
             setHasPinged(true);
-            pingBack();
+            await pingBack();
+            refetch();
           }}
           sx={{
             fontSize: { xs: '0.7rem', sm: '1rem' },

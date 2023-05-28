@@ -16,7 +16,7 @@ import genGetProps from '~/functions/genGetServerSideProps';
 import { idOrStudentId } from '~/functions/isUUID';
 import { getFullName } from '~/functions/memberFunctions';
 import selectTranslation from '~/functions/selectTranslation';
-import { useMemberPageQuery, usePingMemberMutation } from '~/generated/graphql';
+import { useMemberPageQuery, useNotificationsQuery, usePingMemberMutation } from '~/generated/graphql';
 import { useApiAccess } from '~/providers/ApiAccessProvider';
 import { useSetPageName } from '~/providers/PageNameProvider';
 import UserContext from '~/providers/UserProvider';
@@ -37,6 +37,9 @@ export default function MemberPage() {
     variables: {
       id: member?.id,
     },
+  });
+  const { refetch: refetchNotifications } = useNotificationsQuery({
+    skip: true, // we don't want to actually fetch, just refetch
   });
 
   const MEMBER_TEXT = selectTranslation(i18n, 'Medlem', 'Member');
@@ -91,6 +94,7 @@ export default function MemberPage() {
                   onClick={async () => {
                     await ping();
                     refetch();
+                    refetchNotifications();
                   }}
                   startIcon={<AdsClickIcon />}
                 >
