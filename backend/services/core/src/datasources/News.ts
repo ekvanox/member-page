@@ -671,8 +671,8 @@ export default class News extends dbUtils.KnexDataSource {
         // See comment in Notifications.ts why I chose 'COMMENT'.
         // We can't change the internal name as it would break existing notifications
         NotificationType.ARTICLE_UPDATE,
-        '/news/requests/rejected',
         me.id,
+        '/news/requests/rejected',
       );
       return convertArticleRequest({
         article: { ...updatedArticle, ...updatedArticleRequest },
@@ -710,8 +710,8 @@ export default class News extends dbUtils.KnexDataSource {
         // See comment in Notifications.ts why I chose 'COMMENT'.
         // We can't change the internal name as it would break existing notifications
         NotificationType.ARTICLE_UPDATE,
-        '/news/requests',
         me.id,
+        '/news/requests',
       );
       return convertArticleRequest({
         article: { ...updatedArticle, ...updatedArticleRequest },
@@ -827,7 +827,7 @@ export default class News extends dbUtils.KnexDataSource {
       this.sendNotificationToAuthor(
         article,
         'Du har fått en ny gillning',
-        `${me.first_name} ${me.last_name} har gillat din artikel "${article.header}"`,
+        `${me.first_name} ${me.last_name} har gillat din nyhet "${article.header}"`,
         NotificationType.LIKE,
         me.id,
       );
@@ -864,8 +864,9 @@ export default class News extends dbUtils.KnexDataSource {
       this.sendNotificationToAuthor(
         article,
         'Du har fått en ny kommentar',
-        `${me.first_name} ${me.last_name} har kommenterat på din artikel "${article.header}"`,
+        `${me.first_name} ${me.last_name} har kommenterat på din nyhet "${article.header}"`,
         NotificationType.COMMENT,
+        me.id,
       );
 
       const mentionedStudentIds: string[] | undefined = content
@@ -915,8 +916,8 @@ export default class News extends dbUtils.KnexDataSource {
     title: string,
     message: string,
     type: NotificationType,
+    fromMemberId: UUID,
     customLink?: string,
-    fromMemberId?: UUID,
   ): Promise<void> {
     const link = customLink ?? `/news/article/${article.slug ?? article.id}`;
     let memberId = article.author_id;
@@ -953,6 +954,7 @@ export default class News extends dbUtils.KnexDataSource {
       type: NotificationType.NEW_ARTICLE,
       link: `/news/article/${article.slug || article.id}`,
       memberIds: subscribedMemberIDs,
+      fromMemberId: article.author_id,
     });
   }
 

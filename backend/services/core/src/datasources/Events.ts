@@ -242,7 +242,7 @@ export default class EventAPI extends dbUtils.KnexDataSource {
     event: sql.Event | gql.Event,
     authorId: string,
     type: NotificationType,
-    fromMemberId?: string,
+    fromMemberId: string,
   ) {
     await this.addNotification(
       {
@@ -298,8 +298,8 @@ export default class EventAPI extends dbUtils.KnexDataSource {
 
       if (table === 'event_going') {
         this.sendNotificationToAuthor(
-          `${member.first_name} ${member.last_name} is going to your event`,
-          `${member.first_name} ${member.last_name} is going to your event ${event.title}`,
+          `${member.first_name} ${member.last_name} kommer på ditt evenemang`,
+          `${member.first_name} ${member.last_name} kommer på ditt evenemang "${event.title}"`,
           event,
           event.author_id,
           NotificationType.EVENT_GOING,
@@ -307,8 +307,8 @@ export default class EventAPI extends dbUtils.KnexDataSource {
         );
       } else if (table === 'event_interested') {
         this.sendNotificationToAuthor(
-          `${member.first_name} ${member.last_name} is interested in your event`,
-          `${member.first_name} ${member.last_name} is interested in your event ${event.title}`,
+          `${member.first_name} ${member.last_name} är intresserad av ditt evenemang`,
+          `${member.first_name} ${member.last_name} är intresserad av ditt evenemang "${event.title}"`,
           event,
           event.author_id,
           NotificationType.EVENT_INTERESTED,
@@ -421,8 +421,8 @@ export default class EventAPI extends dbUtils.KnexDataSource {
       }
 
       this.sendNotificationToAuthor(
-        `${me.first_name} ${me.last_name} commented on your event`,
-        `${me.first_name} ${me.last_name} commented on your event ${event.title}`,
+        `${me.first_name} ${me.last_name} har kommenterat på ditt evenemang`,
+        `${me.first_name} ${me.last_name} har kommenterat på ditt evenemang ${event.title}`,
         event,
         event.author.id,
         NotificationType.EVENT_COMMENT,

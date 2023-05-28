@@ -981,8 +981,10 @@ export type MutationMarkAsReadArgs = {
 export type Notification = {
   __typename?: 'Notification';
   createdAt: Scalars['Date'];
+  groupedIds?: Maybe<Array<Scalars['UUID']>>;
   id: Scalars['ID'];
   link: Scalars['String'];
+  member?: Maybe<Member>;
   message: Scalars['String'];
   readAt?: Maybe<Scalars['Date']>;
   title: Scalars['String'];
@@ -2603,8 +2605,10 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
 
 export type NotificationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Notification'] = ResolversParentTypes['Notification']> = ResolversObject<{
   createdAt?: Resolver<ResolversTypes['Date'], ParentType, ContextType>;
+  groupedIds?: Resolver<Maybe<Array<ResolversTypes['UUID']>>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   link?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   readAt?: Resolver<Maybe<ResolversTypes['Date']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

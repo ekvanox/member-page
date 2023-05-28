@@ -26,7 +26,7 @@ function NotificationsBell({ small }: { small?: boolean }) {
     if (unread > 0) {
       markAsRead({
         variables: {
-          ids: data.myNotifications.filter((n) => !n.readAt).map((n) => n.id),
+          ids: data.myNotifications.filter((n) => !n.readAt).flatMap((n) => n.groupedIds ?? n.id),
         },
       });
     }
@@ -66,8 +66,19 @@ function NotificationsBell({ small }: { small?: boolean }) {
       >
         {length === 0 && <MenuItem>Inga notiser</MenuItem>}
         {data.myNotifications.map((notification) => (
-          <Stack key={notification.id} direction="row" alignItems="center" justifyContent="space-between" paddingRight="0.5rem">
-            <Link color="text.primary" href={notification.link} style={{ flexGrow: 1 }}>
+          <Stack key={`${notification.id}-${notification.title}`} direction="row" alignItems="center" justifyContent="space-between" paddingRight="0.5rem">
+            <Link
+              color="text.primary"
+              href={notification.link}
+              style={{ flexGrow: 1 }}
+              onClick={() => {
+                markAsRead({
+                  variables: {
+                    ids: notification.groupedIds ?? [notification.id],
+                  },
+                });
+              }}
+            >
               <MenuItem
                 sx={{ maxWidth: '450px', whiteSpace: 'break-spaces' }}
                 onClick={handleClose}
@@ -83,7 +94,7 @@ function NotificationsBell({ small }: { small?: boolean }) {
               onClick={() => {
                 deleteNotifications({
                   variables: {
-                    ids: [notification.id],
+                    ids: notification.groupedIds ?? [notification.id],
                   },
                 }).then(() => {
                   refetch();
@@ -112,7 +123,7 @@ function NotificationsBell({ small }: { small?: boolean }) {
                 onClick={() => {
                   deleteNotifications({
                     variables: {
-                      ids: data.myNotifications.map((n) => n.id),
+                      ids: data.myNotifications.flatMap((n) => n.groupedIds ?? n.id),
                     },
                   }).then(() => {
                     refetch();
